@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloudify Web</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
+  
+  <!-- Google Fonts: Inter & Segoe UI style -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- SockJS and STOMP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body class="dark">
+  <!-- Top Application Frame -->
+  <div class="app-frame">
+    
+    <!-- 1. LEFT-MOST ICON RAIL (WhatsApp Web Style) -->
+    <nav class="nav-rail">
+      <div class="rail-top">
+        <button class="rail-btn active" id="railChatsBtn" title="Chats">
+          <i class="fa-solid fa-message"></i>
+          <span class="rail-unread-dot"></span>
+        </button>
+        <button class="rail-btn" id="railStatusBtn" title="Status">
+          <i class="fa-regular fa-circle-dot"></i>
+        </button>
+        <button class="rail-btn" id="railChannelsBtn" title="Channels">
+          <i class="fa-solid fa-bullhorn"></i>
+        </button>
+        <button class="rail-btn" id="railCommunityBtn" title="Communities">
+          <i class="fa-solid fa-users"></i>
+        </button>
+      </div>
+      <div class="rail-bottom">
+        <!-- THEME TOGGLE: LIGHT / DARK -->
+        <button class="rail-btn" id="themeToggleBtn" title="Switch Theme (Light / Dark)">
+          <i class="fa-solid fa-sun" id="themeIcon"></i>
+        </button>
+        <!-- SOUND TOGGLE -->
+        <button class="rail-btn" id="railSoundBtn" title="Mute/Unmute Sounds">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+        </button>
+        <!-- PROFILE AVATAR -->
+        <div class="rail-profile" id="railProfileBtn" title="My Profile">
+          <div class="rail-avatar" id="railAvatar">U</div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 2. CONVERSATIONS LIST SIDEBAR -->
+    <aside class="chats-sidebar" id="chatsSidebar">
+      <!-- Top Header -->
+      <div class="sidebar-top-bar">
+        <div class="app-brand-area">
+          <h1 class="sidebar-title">Cloudify</h1>
+        </div>
+        <div class="sidebar-actions">
+          <button class="action-icon-btn" id="syncBtn" title="Sync messages">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+          <button class="action-icon-btn" id="newChatBtn" title="New conversation">
+            <i class="fa-solid fa-square-plus"></i>
+          </button>
+          <button class="action-icon-btn" id="sidebarMenuBtn" title="Options">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Input Container -->
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="chatSearchInput" placeholder="Search or start a new chat" autocomplete="off">
+          <button class="clear-input-btn hidden" id="clearChatSearch"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <!-- Quick Filter Pills -->
+      <div class="filter-pills-row">
+        <button class="pill-btn active" data-filter="all">All</button>
+        <button class="pill-btn" data-filter="unread">Unread</button>
+        <button class="pill-btn" data-filter="groups">Groups</button>
+        <button class="pill-btn" data-filter="members">Members</button>
+      </div>
+
+      <!-- Conversation List Items -->
+      <div class="conversations-scroll" id="conversationsList">
+        <!-- Main General Group (Active by default) -->
+        <div class="chat-list-item active" data-chat-id="general-chat" data-name="General Chat" data-type="group">
+          <div class="item-avatar group-avatar">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div class="item-details">
+            <div class="item-header">
+              <span class="item-name">General Chat</span>
+              <span class="item-time" id="generalLastTime">Just now</span>
+            </div>
+            <div class="item-snippet">
+              <span class="snippet-status"><i class="fa-solid fa-check-double text-blue"></i></span>
+              <span class="snippet-text" id="generalSnippetText">Click to view messages</span>
+              <span class="item-badge" id="generalBadge">1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dev Discussions Channel -->
+        <div class="chat-list-item" data-chat-id="dev-discussions" data-name="Dev Discussions" data-type="group">
+          <div class="item-avatar dev-avatar">
+            <i class="fa-solid fa-code"></i>
+          </div>
+          <div class="item-details">
+            <div class="item-header">
+              <span class="item-name">Dev Discussions</span>
+              <span class="item-time">6:30 pm</span>
+            </div>
+            <div class="item-snippet">
+              <span class="snippet-text">Architecture & technical chat</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Announcements Channel -->
+        <div class="chat-list-item" data-chat-id="announcements" data-name="Announcements" data-type="group">
+          <div class="item-avatar announce-avatar">
+            <i class="fa-solid fa-bullhorn"></i>
+          </div>
+          <div class="item-details">
+            <div class="item-header">
+              <span class="item-name">Announcements</span>
+              <span class="item-time">Yesterday</span>
+            </div>
+            <div class="item-snippet">
+              <span class="snippet-text">Important workspace updates</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Separator for Active Participants -->
+        <div class="list-section-header">
+          <span>TEAM MEMBERS (<span id="memberCountHeader">0</span>)</span>
+        </div>
+
+        <!-- Dynamic User List injected here -->
+        <div id="dynamicMembersList"></div>
+      </div>
+    </aside>
+
+    <!-- 3. MAIN CONVERSATION CHAT VIEW -->
+    <main class="chat-view" id="chatView">
+      
+      <!-- Top Chat Header (WhatsApp Web style) -->
+      <header class="chat-view-header">
+        <div class="header-contact">
+          <button class="mobile-back-btn" id="mobileBackBtn" title="Back to chats">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="contact-avatar" id="currentChatAvatar">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div class="contact-meta">
+            <h2 class="contact-name" id="currentChatName">General Chat</h2>
+            <div class="contact-status" id="currentChatStatus">online</div>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <button class="header-action-btn" id="videoCallBtn" title="Video call">
+            <i class="fa-solid fa-video"></i>
+          </button>
+          <button class="header-action-btn" id="voiceCallBtn" title="Voice call">
+            <i class="fa-solid fa-phone"></i>
+          </button>
+          <div class="header-divider"></div>
+          <button class="header-action-btn" id="searchInChatBtn" title="Search in conversation">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+          <button class="header-action-btn" id="chatMenuBtn" title="Options">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- In-chat Search Bar (slide down when toggled) -->
+      <div class="inchat-search-bar hidden" id="inchatSearchBar">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="inchatSearchInput" placeholder="Search in this conversation...">
+        <button class="close-search-btn" id="closeInchatSearch"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Messages Stream Area -->
+      <section class="messages-flow" id="messagesFlow">
+        
+        <!-- Loading State -->
+        <div class="flow-loading" id="flowLoading">
+          <div class="wa-spinner"></div>
+          <span>Loading messages...</span>
+        </div>
+
+        <!-- Date Pill Divider -->
+        <div class="date-divider-pill" id="dateDividerPill">
+          <span>Today</span>
+        </div>
+
+        <!-- Message Bubbles Feed -->
+        <div class="bubbles-feed" id="bubblesFeed"></div>
+
+        <!-- Scroll down floating button -->
+        <button class="wa-scroll-btn hidden" id="waScrollBottomBtn" title="Scroll to bottom">
+          <i class="fa-solid fa-angle-down"></i>
+          <span class="scroll-unread-badge hidden" id="scrollUnreadBadge">1</span>
+        </button>
+      </section>
+
+      <!-- Editing Message Banner (appears when editing a message) -->
+      <div class="edit-banner hidden" id="editBanner">
+        <div class="edit-info">
+          <i class="fa-solid fa-pen"></i>
+          <span>Editing message: <strong id="editingSnippet"></strong></span>
+        </div>
+        <button type="button" class="cancel-edit-btn" id="cancelEditBtn" title="Cancel edit">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Quick Reaction / Emoji Bar (Collapsible) -->
+      <div class="quick-emojis-bar hidden" id="quickEmojisBar">
+        <button type="button" class="quick-emoji" data-emoji="👍">👍</button>
+        <button type="button" class="quick-emoji" data-emoji="❤️">❤️</button>
+        <button type="button" class="quick-emoji" data-emoji="😂">😂</button>
+        <button type="button" class="quick-emoji" data-emoji="🔥">🔥</button>
+        <button type="button" class="quick-emoji" data-emoji="🎉">🎉</button>
+        <button type="button" class="quick-emoji" data-emoji="🚀">🚀</button>
+        <button type="button" class="quick-emoji" data-emoji="💡">💡</button>
+        <button type="button" class="quick-emoji" data-emoji="🙏">🙏</button>
+      </div>
+
+      <!-- Bottom Chat Composer Bar (WhatsApp Web style) -->
+      <footer class="composer-bar">
+        <button type="button" class="composer-icon-btn" id="emojiToggleBtn" title="Emojis">
+          <i class="fa-regular fa-face-smile"></i>
+        </button>
+        <button type="button" class="composer-icon-btn" id="attachBtn" title="Attach">
+          <i class="fa-solid fa-paperclip"></i>
+        </button>
+
+        <form class="composer-form" id="composerForm">
+          <input 
+            type="text" 
+            id="composerInput" 
+            placeholder="Type a message" 
+            autocomplete="off"
+          >
+        </form>
+
+        <button type="button" class="composer-action-btn" id="composerSendBtn" title="Send message">
+          <i class="fa-solid fa-paper-plane" id="sendIcon"></i>
+        </button>
+      </footer>
+    </main>
+
+  </div>
+
+  <!-- BUBBLE CONTEXT MENU (WhatsApp 3-dots Menu for Edit / Delete / Copy) -->
+  <div class="bubble-context-menu hidden" id="bubbleContextMenu">
+    <div class="menu-item" id="menuActionEdit"><i class="fa-solid fa-pen"></i> Edit message</div>
+    <div class="menu-item" id="menuActionCopy"><i class="fa-regular fa-copy"></i> Copy text</div>
+    <div class="menu-divider" id="menuDividerDelete"></div>
+    <div class="menu-item text-danger" id="menuActionDelete"><i class="fa-solid fa-trash-can"></i> Delete message</div>
+  </div>
+
+  <!-- PROFILE / NAME EDIT MODAL -->
+  <div class="modal-backdrop hidden" id="profileModal">
+    <div class="wa-modal-card">
+      <div class="wa-modal-header">
+        <h3>User Profile</h3>
+        <button class="modal-close-btn" id="closeProfileModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="wa-modal-body">
+        <div class="modal-avatar-preview">
+          <div class="big-avatar" id="modalBigAvatar">U</div>
+        </div>
+        <form id="profileForm">
+          <div class="input-group">
+            <label for="profileNameInput">Your Name</label>
+            <input 
+              type="text" 
+              id="profileNameInput" 
+              placeholder="Enter your name" 
+              maxlength="30"
+              required
+            >
+          </div>
+          <button type="submit" class="wa-primary-btn">Save Profile</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTACHMENT POPUP MODAL -->
+  <div class="modal-backdrop hidden" id="attachModal">
+    <div class="wa-modal-card">
+      <div class="wa-modal-header">
+        <h3>Share in Cloudify</h3>
+        <button class="modal-close-btn" id="closeAttachModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="attach-grid">
+        <button class="attach-option" data-type="doc">
+          <div class="attach-circle doc-circle"><i class="fa-solid fa-file-lines"></i></div>
+          <span>Document</span>
+        </button>
+        <button class="attach-option" data-type="photo">
+          <div class="attach-circle photo-circle"><i class="fa-solid fa-image"></i></div>
+          <span>Photos & videos</span>
+        </button>
+        <button class="attach-option" data-type="poll">
+          <div class="attach-circle poll-circle"><i class="fa-solid fa-square-poll-vertical"></i></div>
+          <span>Poll</span>
+        </button>
+        <button class="attach-option" data-type="contact">
+          <div class="attach-circle contact-circle"><i class="fa-solid fa-user"></i></div>
+          <span>Contact</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALL SIMULATION MODAL -->
+  <div class="modal-backdrop hidden" id="callModal">
+    <div class="wa-modal-card text-center">
+      <div class="call-avatar" id="callAvatar">U</div>
+      <h3 id="callTitle">Calling General Chat...</h3>
+      <p class="call-subtitle">End-to-end encrypted session</p>
+      <div class="call-actions">
+        <button class="call-end-btn" id="endCallBtn"><i class="fa-solid fa-phone-slash"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="wa-toast hidden" id="waToast"></div>
+
+  <!-- Application Logic -->
+  <script src="js/app.js"></script>
+</body>
+</html>

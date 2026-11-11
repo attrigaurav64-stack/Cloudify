@@ -1,126 +1,131 @@
-# Chat Application (Java Broadcast Chat)
+# Cloudify &bull; Enterprise Spring Boot 3 Real-Time Chat Platform
 
-Simple Java socket chat with:
+> **Interface**: Cloudify Web (WhatsApp-Style Modern User Interface) & Terminal Console Edition  
+> **Backend**: Spring Boot 3.3.5 (Spring MVC, Spring Data JPA, STOMP WebSocket, Bean Validation, Actuator)  
+> **Live Web UI**: `http://localhost:8080`
 
-1. One server
-2. Multiple GUI clients
-3. Broadcast messaging (everyone sees everyone)
+A complete, enterprise-grade real-time chat platform featuring an ultra-clean, user-friendly **WhatsApp Web style interface** named **Cloudify**, coupled with a robust **Spring Boot 3 backend** and terminal clients. All interfaces communicate seamlessly through real-time push and cloud persistence.
 
-## Project Structure
+---
 
-```text
-chat-application-master/
-  server_side/
-    src/chat_app/Server.java
-    bin/
-  client_side/
-    src/chat_app/Client.java
-    bin/
-```
+## 🏛️ Enterprise Spring Boot 3 Backend Architecture
 
-## Requirements
-
-1. Java JDK 8+
-2. Terminal on Windows/macOS/Linux
-
-Check Java:
-
-```bash
-javac -version
-java -version
-```
-
-## How It Works
-
-1. Server listens on a port (default 5055).
-2. Each client connects with name + host + port.
-3. Every normal message is broadcast to all connected users.
-4. Server sends status messages as sender Server:
-   1. user joined
-   2. user left
-   3. online users for newly joined client
-5. In the client UI, your own name in server status messages is shown as you.
-
-## Build
-
-From project root:
-
-```bash
-cd server_side
-javac -d bin src/chat_app/Server.java
-
-cd ../client_side
-javac -d bin src/chat_app/Client.java
-```
-
-## Run (LAN)
-
-### 1) Start Server
-
-```bash
-cd server_side
-java -cp bin chat_app.Server 5055
-```
-
-Server prints local IP hints. Use one of those IPs from other devices.
-
-### 2) Start Clients
-
-```bash
-cd client_side
-java -cp bin chat_app.Client <name> <server_host> <server_port>
-```
-
-Example:
-
-```bash
-java -cp bin chat_app.Client Ranbir 192.168.1.20 5055
-java -cp bin chat_app.Client Suman 192.168.1.20 5055
-```
-
-## Run (Public Internet via Pinggy)
-
-### 1) Start server normally
-
-```bash
-cd server_side
-java -cp bin chat_app.Server 5055
-```
-
-### 2) In another terminal, start tunnel
-
-```bash
-ssh -o StrictHostKeyChecking=accept-new -p 443 -R0:localhost:5055 tcp@a.pinggy.io
-```
-
-You will get a TCP address like:
+The backend adheres strictly to industry-standard layered architecture:
 
 ```text
-tcp://something.run.pinggy-free.link:39345
+src/main/java/com/chatapp/
+│
+├── ChatApplication.java                 # Spring Boot Main Entry Point
+│
+├── config/                              # Infrastructure & Protocol Configuration
+│   ├── CorsConfig.java                  # Cross-Origin Resource Sharing (CORS)
+│   └── WebSocketConfig.java             # STOMP / SockJS broker configuration
+│
+├── controller/                          # Presentation Layer (REST & WebSocket)
+│   ├── MessageRestController.java       # Full REST API for message CRUD & stats
+│   └── ChatWebSocketController.java     # Sub-millisecond real-time push broker
+│
+├── service/                             # Business Logic Layer
+│   ├── ChatService.java                 # Service contract interface
+│   └── impl/
+│       └── ChatServiceImpl.java        # Message validation, DB operations, WebSocket push
+│
+├── repository/                          # Data Access Layer (Spring Data JPA)
+│   └── MessageRepository.java           # JpaRepository queries, search & distinct senders
+│
+├── entity/                              # JPA Domain Model (Hibernate ORM)
+│   └── Message.java                     # Maps to MySQL/TiDB `messages` table
+│
+├── dto/                                 # Data Transfer Objects & Validation
+│   ├── ApiResponse.java                 # Standardized JSON response envelope
+│   ├── ChatMessageDto.java              # Client-safe message transfer DTO
+│   ├── ChatStatsDto.java                # Real-time room metrics & database health
+│   └── MessageRequestDto.java           # Inbound message DTO with Jakarta Bean Validation
+│
+├── exception/                           # Error Handling Layer
+│   ├── GlobalExceptionHandler.java      # @RestControllerAdvice for uniform JSON errors
+│   └── ResourceNotFoundException.java   # Custom 404 domain exception
+│
+└── client/                              # Terminal Console Client
+    └── TerminalClient.java              # Multithreaded JDBC terminal client
 ```
 
-### 3) Start clients with tunnel host and port
+---
 
-```bash
-cd client_side
-java -cp bin chat_app.Client Ranbir something.run.pinggy-free.link 39345
-java -cp bin chat_app.Client Suman  something.run.pinggy-free.link 39345
+## 📡 REST API & WebSocket Documentation
+
+### REST Endpoints (`/api`)
+
+| Method | Endpoint | Description | Request Body | Response |
+|---|---|---|---|---|
+| `GET` | `/api/messages` | Fetch latest messages (default: 50) | None | `List<ChatMessageDto>` |
+| `GET` | `/api/messages/poll?afterId={id}` | Incrementally poll messages after given ID | None | `List<ChatMessageDto>` |
+| `POST` | `/api/messages` | Create and broadcast a new message | `{"sender":"...","content":"..."}` | `ChatMessageDto` (201 Created) |
+| `GET` | `/api/messages/search?query={q}` | Keyword search in sender/content | None | `List<ChatMessageDto>` |
+| `DELETE` | `/api/messages/{id}` | Delete a message by ID | None | `ApiResponse<Void>` |
+| `GET` | `/api/stats` | Active users, total count, DB status | None | `ChatStatsDto` |
+| `GET` | `/api/health` | Application heartbeat & database status | None | `Map<String, Object>` |
+| `GET` | `/actuator/health` | Spring Boot Actuator health status | None | `HealthStatus` |
+
+### WebSocket STOMP Protocol (`/ws-chat`)
+
+- **STOMP Endpoint**: `/ws-chat` (with SockJS fallback enabled)
+- **Broker Destination**: `/topic/public` (clients subscribe to receive live messages)
+- **Application Prefix**: `/app`
+  - Send message: send to `/app/chat.sendMessage`
+  - User join event: send to `/app/chat.addUser`
+
+---
+
+## 🎨 Professional Web UI Features
+
+- **Glassmorphic Dark Mode**: Modern slate & indigo theme inspired by Slack, Discord, and Linear.
+- **Dynamic Avatars**: Unique initials and gradient colors hashed from sender names.
+- **Live Search**: In-chat keyword filter for quick history lookups.
+- **Audio Chime**: Web Audio API synth chimes on incoming messages (with mute switch).
+- **Active Participants Panel**: Real-time listing of active chat members.
+- **Dual Sync (WebSocket + Polling)**: Zero-lag WebSocket push + background HTTP polling fallback to ensure 100% synchronization with terminal clients.
+
+---
+
+## 🚀 How to Run
+
+### 1. Spring Boot Backend & Web UI
+
+#### Option A: One-Click Batch File
+Double-click **`run-spring-boot.bat`** in the project folder.
+
+#### Option B: Maven Command
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+*(Or `mvn spring-boot:run` if Maven is installed)*
+
+Open your browser at **[http://localhost:8080](http://localhost:8080)**.
+
+---
+
+### 2. Instant Zero-Maven Launcher (Pure JDK Fallback)
+If Maven is not yet downloaded on your machine:
+```powershell
+run-ui.bat
+```
+*(Runs `StandaloneUiServer.java` on pure JDK with identical UI & REST API)*
+
+---
+
+### 3. Run Terminal Clients Alongside Web UI
+
+Open separate terminal windows:
+
+**Terminal 1:**
+```powershell
+java -cp "bin;lib/*" com.chatapp.client.TerminalClient User1
 ```
 
-## Quit Behavior
+**Terminal 2:**
+```powershell
+java -cp "bin;lib/*" com.chatapp.client.TerminalClient User2
+```
 
-1. If a user sends quit, only that user leaves.
-2. Server keeps running.
-3. Others get a server message that the user left.
-
-## Common Issues
-
-### Address already in use
-
-Port already in use. Stop existing process or run on another port.
-
-### Could not connect
-
-1. Check host and port.
-2. Ensure server is running.
-3. If using Pinggy, ensure tunnel is running and not expired.
+Messages sent in any terminal window will instantly appear in the Cloudify Web UI, and vice versa!
