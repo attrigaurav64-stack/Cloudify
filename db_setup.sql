@@ -1,11 +1,8 @@
 -- ==============================================================
--- Chat Application Database Setup (MySQL / TiDB)
--- Course: 24CSH-301 Project Based Learning in Java
+-- Cloudify Database Setup & Reset Script (MySQL / TiDB Cloud)
 -- ==============================================================
 
-CREATE DATABASE IF NOT EXISTS chatapp_db;
-USE chatapp_db;
-
+-- Create table if not exists
 CREATE TABLE IF NOT EXISTS messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sender VARCHAR(50) NOT NULL,
@@ -13,5 +10,11 @@ CREATE TABLE IF NOT EXISTS messages (
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Test message (optional)
-INSERT INTO messages (sender, content) VALUES ('System', 'Welcome to JDBC Chat!');
+-- How to clear old messages anytime:
+-- TRUNCATE TABLE messages;
+-- or
+-- DELETE FROM messages;
+
+-- Insert fresh welcome message:
+INSERT INTO messages (sender, content, sent_at) 
+VALUES ('Cloudify Bot', 'Welcome to Cloudify! Chat history has been refreshed.', NOW());
